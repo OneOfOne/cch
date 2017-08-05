@@ -16,12 +16,14 @@ func init() {
 
 type Chan struct {
 	w chan interface{}
+	c chan struct{}
 	m sync.RWMutex
 }
 
 func Make(cap int) *Chan {
 	ch := &Chan{
 		w: make(chan interface{}, cap),
+		c: make(chan struct{}),
 	}
 	return ch
 }
@@ -40,9 +42,11 @@ func (ch *Chan) Closed() bool {
 func (ch *Chan) Send(val interface{}) (ok bool) {
 	ch.m.RLock()
 	if ch.w != closedChan {
-		ch.w <- val
-		ok = true
-
+		select {
+		case <-ch.c:
+		case ch.w <- val:
+			ok = true
+		}
 	}
 	ch.m.RUnlock()
 	return
@@ -60,39 +64,44 @@ func (ch *Chan) TrySend(val interface{}) (ok bool) {
 }
 
 func (ch *Chan) Recv() (v interface{}, ok bool) {
-	v, ok = <-ch.w
+	v, ok = <-ch.ch()
 	return
 }
 
 func (ch *Chan) TryRecv() (v interface{}, ok bool) {
 	select {
-	case v, ok = <-ch.w:
+	case v, ok = <-ch.ch():
 	default:
 	}
 	return
 }
 
-func (ch *Chan) Chan(cap int) <-chan interface{} {
+func (ch *Chan) Chan() <-chan interface{} {
 	return ch.ch()
 }
 
 func (ch *Chan) Close() error {
-	ch.m.Lock()
-	if ch.w == nil {
-		ch.m.Unlock()
+	select {
+	case <-ch.c:
 		return ErrClosed
+	default:
+		close(ch.c)
 	}
-
-L:
-	for {
-		select {
-		case <-ch.w:
-		default:
-			close(ch.w)
-			break L
-		}
-	}
+	ch.m.Lock()
+	w := ch.w
 	ch.w = closedChan
 	ch.m.Unlock()
+	drain(w)
 	return nil
+}
+
+func drain(w chan interface{}) {
+	for {
+		select {
+		case <-w:
+		default:
+			close(w)
+			return
+		}
+	}
 }

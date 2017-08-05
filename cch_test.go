@@ -1,10 +1,10 @@
 package cch
 
 import (
+	"runtime"
 	"sync"
 	"sync/atomic"
 	"testing"
-	"time"
 )
 
 func TestChan(t *testing.T) {
@@ -34,38 +34,40 @@ func TestChan(t *testing.T) {
 	}()
 	go func() {
 		defer wg.Done()
-		time.Sleep(time.Millisecond)
 		var (
 			last interface{}
 		)
-		for v := range ch.Chan(0) {
+		for v := range ch.Chan() {
 			if v := v.(int64); v == 1e4 {
 				ch.Close()
 			} else {
 				last = v
 			}
 		}
-		t.Logf("done: %v", last)
+		_ = last
+		// t.Logf("done: %v", last)
 
 	}()
 	wg.Wait()
-	t.Log(ch.Recv())
+	if _, ok := ch.Recv(); ok {
+		t.Fatal("unexpected Recv")
+	}
 
 }
 
-func BenchmarkLeak(b *testing.B) {
+func BenchmarkTryLeak(b *testing.B) {
 	b.RunParallel(func(pb *testing.PB) {
 		var (
-			ch   = Make(1)
-			last interface{}
-			i    int
+			ch = Make(runtime.NumCPU())
+			i  int
 		)
-		go func() {
-			for v := range ch.Chan(0) {
-				last = v
-			}
-			b.Logf("last: %v", last)
-		}()
+		for i := 0; i < runtime.NumCPU(); i++ {
+			go func() {
+				for range ch.Chan() {
+
+				}
+			}()
+		}
 		for pb.Next() {
 			if !ch.Send(i) {
 				b.Fatalf("wtf")
@@ -73,5 +75,6 @@ func BenchmarkLeak(b *testing.B) {
 			i++
 		}
 		ch.Close()
+		b.Log(i)
 	})
 }
