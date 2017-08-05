@@ -17,7 +17,7 @@ func TestChan(t *testing.T) {
 	go func() {
 		defer wg.Done()
 		for {
-			if !ch.Send(atomic.AddInt64(&i, 1)) {
+			if !ch.Send(atomic.AddInt64(&i, 1), true) {
 				//t.Logf("Send1: chan closed at %d", i)
 				return
 			}
@@ -26,7 +26,7 @@ func TestChan(t *testing.T) {
 	go func() {
 		defer wg.Done()
 		for {
-			if !ch.Send(atomic.AddInt64(&i, 1)) {
+			if !ch.Send(atomic.AddInt64(&i, 1), true) {
 				//t.Logf("Send2: chan closed at %d", i)
 				return
 			}
@@ -49,10 +49,30 @@ func TestChan(t *testing.T) {
 
 	}()
 	wg.Wait()
-	if _, ok := ch.Recv(); ok {
+	if _, ok := ch.Recv(true); ok {
 		t.Fatal("unexpected Recv")
 	}
 
+}
+
+func TestAny(t *testing.T) {
+	const N = 10
+	chans := make([]*Chan, N)
+	for i := range chans {
+		chans[i] = NewBuffered(1)
+	}
+
+	for i := range chans {
+		if !SelectSend(i, true, chans...) {
+			t.Fatalf("couldn't send %v", i)
+		}
+	}
+
+	for i := range chans {
+		if v, ok := SelectRecv(true, chans...); !ok || v.(int) != i {
+			t.Fatalf("couldn't recv %v: %v (%v)", i, v, ok)
+		}
+	}
 }
 
 func BenchmarkTryLeak(b *testing.B) {
@@ -69,7 +89,7 @@ func BenchmarkTryLeak(b *testing.B) {
 			}()
 		}
 		for pb.Next() {
-			if !ch.Send(i) {
+			if !ch.Send(i, true) {
 				b.Fatalf("wtf")
 			}
 			i++

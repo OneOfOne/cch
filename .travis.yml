@@ -3,8 +3,7 @@ sudo: false
 
 go:
   - 1.8
-  - tip
+  - 1.9rc1
 
 script:
-  - go test -v ./...
-  - go test -v -bench=. ./...
+  - go test -race -count 100 ./...

@@ -1,7 +1,7 @@
-# cch (closable channel) [![GoDoc](http://godoc.org/github.com/OneOfOne/cch?status.svg)](http://godoc.org/github.com/OneOfOne/cch) [![Build Status](https://travis-ci.org/OneOfOne/cch.svg?branch=master)](https://travis-ci.org/OneOfOne/cch)
+# cch (closable channels) [![GoDoc](http://godoc.org/github.com/OneOfOne/cch?status.svg)](http://godoc.org/github.com/OneOfOne/cch) [![Build Status](https://travis-ci.org/OneOfOne/cch.svg?branch=master)](https://travis-ci.org/OneOfOne/cch)
 --
 
-CMap (concurrent-map) is a sharded map implementation to support fast concurrent access.
+cch is a simple wrapper over `chan interface{}` to allow multiple writers/readers with safe closing without panicing.
 
 ## Install
 
@@ -13,6 +13,8 @@ CMap (concurrent-map) is a sharded map implementation to support fast concurrent
 import (
 	"github.com/OneOfOne/cch"
 )
+
+const NumWorkers = 100
 
 func main() {
 	ch := cch.NewBuffered(NumWorkers)
@@ -30,6 +32,11 @@ func main() {
 }
 ```
 
+## TODO:
+
+* Better documentation
+* More tests.
+* Better select impl.
 ## License
 
 Apache v2.0 (see [LICENSE](https://github.com/OneOfOne/cch/blob/master/LICENSE) file).

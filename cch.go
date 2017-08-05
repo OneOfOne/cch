@@ -45,45 +45,38 @@ func (ch *Chan) Closed() bool {
 	}
 }
 
-// Send send val to the channel, returns false if the channel is closed.
-func (ch *Chan) Send(val interface{}) (ok bool) {
+// Send send val to the channel, returns false if the channel is closed or block is false and the channel is full.
+func (ch *Chan) Send(val interface{}, block bool) (ok bool) {
 	ch.m.RLock()
 	if ch.q != closedChan {
-		select {
-		case <-ch.done:
-		case ch.q <- val:
-			ok = true
+		if block {
+			select {
+			case <-ch.done:
+			case ch.q <- val:
+				ok = true
+			}
+		} else {
+			select {
+			case <-ch.done:
+			case ch.q <- val:
+				ok = true
+			default:
+			}
 		}
 	}
 	ch.m.RUnlock()
 	return
 }
 
-// TrySend tries to send val to the channel, returns false if the channel is closed or the channel is full.
-func (ch *Chan) TrySend(val interface{}) (ok bool) {
-	ch.m.RLock()
-	if ch.q != closedChan {
+// Recv reads from the channel and blocks if block is set, until a value is available or the channel is closed.
+func (ch *Chan) Recv(block bool) (v interface{}, ok bool) {
+	if block {
+		v, ok = <-ch.ch()
+	} else {
 		select {
-		case ch.q <- val:
-			ok = true
+		case v, ok = <-ch.ch():
 		default:
 		}
-	}
-	ch.m.RUnlock()
-	return
-}
-
-// Recv reads from the channel and blocks until a value is available or the channel is closed.
-func (ch *Chan) Recv() (v interface{}, ok bool) {
-	v, ok = <-ch.ch()
-	return
-}
-
-// Recv tries to read from the channel and returns early if the channel is empty or closed.
-func (ch *Chan) TryRecv() (v interface{}, ok bool) {
-	select {
-	case v, ok = <-ch.ch():
-	default:
 	}
 	return
 }
@@ -101,6 +94,7 @@ func (ch *Chan) Cap() int { return cap(ch.ch()) }
 
 // Close closes the channel and drains it safely.
 // Close returns ErrClosed if called multiple times.
+// Note that the call will block until the channel is fully drained.
 func (ch *Chan) Close() error {
 	select {
 	case <-ch.done:
@@ -113,7 +107,7 @@ func (ch *Chan) Close() error {
 	w := ch.q
 	ch.q = closedChan
 	ch.m.Unlock()
-	go drain(w)
+	drain(w)
 	return nil
 }
 
