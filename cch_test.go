@@ -55,22 +55,22 @@ func TestChan(t *testing.T) {
 
 }
 
-func TestAny(t *testing.T) {
-	const N = 10
+func TestSelect(t *testing.T) {
+	const N = 1e3
 	chans := make([]*Chan, N)
 	for i := range chans {
 		chans[i] = NewBuffered(1)
 	}
 
 	for i := range chans {
-		if !SelectSend(i, true, chans...) {
+		if !SelectSend(i, false, chans...) {
 			t.Fatalf("couldn't send %v", i)
 		}
 	}
 
 	for i := range chans {
-		if v, ok := SelectRecv(true, chans...); !ok || v.(int) != i {
-			t.Fatalf("couldn't recv %v: %v (%v)", i, v, ok)
+		if _, ok := SelectRecv(false, chans...); !ok {
+			t.Fatalf("couldn't recv %v", i)
 		}
 	}
 }
