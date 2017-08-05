@@ -6,6 +6,15 @@ cch is a simple wrapper over `chan interface{}` to allow multiple writers/reader
 
 	go get github.com/OneOfOne/cch
 
+
+## FAQ
+
+### Why?
+* Because quiet often I need to have multiple writers and readers and issue [https://github.com/golang/go/issues/15411](#15411) got rejected.
+
+### How's the performance?
+* The only overhead is a mutex.RLock on Send/Recv.
+
 ## Usage
 
 ```go
