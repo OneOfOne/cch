@@ -1,5 +1,4 @@
-# cch (closable channels) [![GoDoc](http://godoc.org/github.com/OneOfOne/cch?status.svg)](http://godoc.org/github.com/OneOfOne/cch) [![Build Status](https://travis-ci.org/OneOfOne/cch.svg?branch=master)](https://travis-ci.org/OneOfOne/cch)
---
+# cch (closable channels) [![GoDoc](https://godoc.org/github.com/OneOfOne/cch?status.svg)](https://godoc.org/github.com/OneOfOne/cch) [![Build Status](https://travis-ci.org/OneOfOne/cch.svg?branch=master)](https://travis-ci.org/OneOfOne/cch)
 
 cch is a simple wrapper over `chan interface{}` to allow multiple writers/readers with safe closing without panicing.
 
