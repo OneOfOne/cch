@@ -9,7 +9,7 @@ import (
 
 func TestChan(t *testing.T) {
 	var (
-		ch = Make(2)
+		ch = NewBuffered(2)
 		wg sync.WaitGroup
 		i  int64
 	)
@@ -45,7 +45,7 @@ func TestChan(t *testing.T) {
 			}
 		}
 		_ = last
-		// t.Logf("done: %v", last)
+		t.Logf("done: %v", last)
 
 	}()
 	wg.Wait()
@@ -58,7 +58,7 @@ func TestChan(t *testing.T) {
 func BenchmarkTryLeak(b *testing.B) {
 	b.RunParallel(func(pb *testing.PB) {
 		var (
-			ch = Make(runtime.NumCPU())
+			ch = NewBuffered(runtime.NumCPU())
 			i  int
 		)
 		for i := 0; i < runtime.NumCPU(); i++ {
