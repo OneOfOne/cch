@@ -34,9 +34,10 @@ func main() {
 
 ## TODO:
 
-* Better documentation
+* Better documentation.
 * More tests.
-* Better select impl.
+* Better select/multi-impl.
+
 ## License
 
 Apache v2.0 (see [LICENSE](https://github.com/OneOfOne/cch/blob/master/LICENSE) file).
