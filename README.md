@@ -10,7 +10,9 @@ cch is a simple wrapper over `chan interface{}` to allow multiple writers/reader
 ## FAQ
 
 ### Why?
-* Because quiet often I need to have multiple writers and readers and issue [https://github.com/golang/go/issues/15411](#15411) got rejected.
+* Because quite often I need to have multiple writers and readers.
+
+* I had a [proposal](https://github.com/golang/go/issues/15411) to allow a safe'ish send-on-a-closed channel using select, however it got rejected.
 
 ### How's the performance?
 * The only overhead is a mutex.RLock on Send/Recv.
