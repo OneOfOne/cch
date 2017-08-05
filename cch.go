@@ -1,6 +1,7 @@
 package cch
 
 import (
+	"context"
 	"errors"
 	"sync"
 )
@@ -68,6 +69,22 @@ func (ch *Chan) Send(val interface{}, block bool) (ok bool) {
 	return
 }
 
+// SendWithCtx blocks until the val is sent on the channel or the ctx is done.
+// returns false if ctx expires or the channel is closed.
+func (ch *Chan) SendWithCtx(ctx context.Context, val interface{}) (ok bool) {
+	ch.m.RLock()
+	if ch.q != closedChan {
+		select {
+		case <-ch.done:
+		case <-ctx.Done():
+		case ch.q <- val:
+			ok = true
+		}
+	}
+	ch.m.RUnlock()
+	return
+}
+
 // Recv reads from the channel and blocks if block is set, until a value is available or the channel is closed.
 func (ch *Chan) Recv(block bool) (v interface{}, ok bool) {
 	if block {
@@ -77,6 +94,16 @@ func (ch *Chan) Recv(block bool) (v interface{}, ok bool) {
 		case v, ok = <-ch.ch():
 		default:
 		}
+	}
+	return
+}
+
+// RecvWithCtx blocks until a val is recieved on the channel or the ctx is done.
+func (ch *Chan) RecvWithCtx(ctx context.Context) (v interface{}, ok bool) {
+	select {
+	case <-ch.done:
+	case v, ok = <-ch.ch():
+	case <-ctx.Done():
 	}
 	return
 }

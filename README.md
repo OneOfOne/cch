@@ -17,6 +17,10 @@ cch is a simple wrapper over `chan interface{}` to allow multiple writers/reader
 ### How's the performance?
 * The only overhead is a mutex.RLock on Send/Recv.
 
+### Why not use `context.WithCancel`?
+* It adds complexity to the client code.
+* Slight overhead and memory overhead because of the complexity
+
 ## Usage
 
 ```go
@@ -47,6 +51,7 @@ func main() {
 * Better documentation.
 * More tests.
 * Better select/multi-impl.
+* Support `context.Context`.
 
 ## License
 
