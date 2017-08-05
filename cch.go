@@ -2,68 +2,70 @@ package cch
 
 import (
 	"errors"
+	"sync"
 )
 
 var (
-	ErrClosed = errors.New("channel is closed")
+	ErrClosed  = errors.New("channel is closed")
+	closedChan = make(chan interface{})
 )
+
+func init() {
+	close(closedChan) // inspired by context
+}
 
 type Chan struct {
 	w chan interface{}
-	c chan struct{}
+	m sync.RWMutex
 }
 
 func Make(cap int) *Chan {
 	ch := &Chan{
 		w: make(chan interface{}, cap),
-		c: make(chan struct{}),
 	}
 	return ch
 }
 
-func (ch *Chan) Closed() bool {
-	select {
-	case <-ch.c:
-		return true
-	default:
-		return false
-	}
+func (ch *Chan) ch() chan interface{} {
+	ch.m.RLock()
+	w := ch.w
+	ch.m.RUnlock()
+	return w
 }
 
-func (ch *Chan) Send(val interface{}) (v bool) {
-	select {
-	case <-ch.c:
-		break
-	case ch.w <- val:
-		v = true
+func (ch *Chan) Closed() bool {
+	return ch.ch() == closedChan
+}
+
+func (ch *Chan) Send(val interface{}) (ok bool) {
+	ch.m.RLock()
+	if ch.w != closedChan {
+		ch.w <- val
+		ok = true
+
 	}
+	ch.m.RUnlock()
 	return
 }
 
-func (ch *Chan) TrySend(val interface{}) (v bool) {
-	select {
-	case <-ch.c:
-		break
-	case ch.w <- val:
-		v = true
-	default:
+func (ch *Chan) TrySend(val interface{}) (ok bool) {
+	if w := ch.ch(); w != closedChan {
+		select {
+		case ch.w <- val:
+			ok = true
+		default:
+		}
 	}
 	return
 }
 
 func (ch *Chan) Recv() (v interface{}, ok bool) {
-	select {
-	case <-ch.c:
-		break
-	case v, ok = <-ch.w:
-	}
+	v, ok = <-ch.w
 	return
 }
 
 func (ch *Chan) TryRecv() (v interface{}, ok bool) {
 	select {
-	case <-ch.c:
-		break
 	case v, ok = <-ch.w:
 	default:
 	}
@@ -71,41 +73,26 @@ func (ch *Chan) TryRecv() (v interface{}, ok bool) {
 }
 
 func (ch *Chan) Chan(cap int) <-chan interface{} {
-	out := make(chan interface{}, cap)
-	go func() {
-	L:
-		for {
-			select {
-			case <-ch.c:
-				break L
-			case v, ok := <-ch.w:
-				if !ok {
-					break L
-				}
-				out <- v
-			}
-		}
-		close(out)
-	}()
-	return out
+	return ch.ch()
 }
 
 func (ch *Chan) Close() error {
-	select {
-	case <-ch.c:
+	ch.m.Lock()
+	if ch.w == nil {
+		ch.m.Unlock()
 		return ErrClosed
-	default:
-		close(ch.c)
 	}
 
+L:
 	for {
-
 		select {
 		case <-ch.w:
 		default:
-			return nil
+			close(ch.w)
+			break L
 		}
 	}
-
+	ch.w = closedChan
+	ch.m.Unlock()
 	return nil
 }

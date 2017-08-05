@@ -39,7 +39,7 @@ func TestChan(t *testing.T) {
 			last interface{}
 		)
 		for v := range ch.Chan(0) {
-			if v := v.(int64); v == 1e6 {
+			if v := v.(int64); v == 1e4 {
 				ch.Close()
 			} else {
 				last = v
